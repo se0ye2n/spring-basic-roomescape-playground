@@ -40,4 +40,8 @@ public class Member {
     public String getRole() {
         return role;
     }
+
+    public boolean isAdmin() {
+        return "ADMIN".equals(role);
+    }
 }
