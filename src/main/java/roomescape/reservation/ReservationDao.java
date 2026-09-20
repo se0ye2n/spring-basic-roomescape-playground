@@ -67,7 +67,19 @@ public class ReservationDao {
             return ps;
         }, keyHolder);
 
-        // 기존 Time, Theme 조회 코드는 그대로 유지
+        Time time = jdbcTemplate.queryForObject(
+                "SELECT * FROM time WHERE id = ?",
+                (rs, rowNum) -> new Time(rs.getLong("id"), rs.getString("time_value")),
+                reservationRequest.getTime()
+        );
+
+        Theme theme = jdbcTemplate.queryForObject(
+                "SELECT * FROM theme WHERE id = ?",
+                (rs, rowNum) -> new Theme(
+                        rs.getLong("id"), rs.getString("name"), rs.getString("description")
+                ),
+                reservationRequest.getTheme()
+        );
 
         return new Reservation(
                 keyHolder.getKey().longValue(),
@@ -89,7 +101,7 @@ public class ReservationDao {
                         "ti.id AS time_id, ti.time_value AS time_value " +
                         "FROM reservation r " +
                         "JOIN theme t ON r.theme_id = t.id " +
-                        "JOIN time ti ON r.time_id = ti.id" +
+                        "JOIN time ti ON r.time_id = ti.id " +
                         "WHERE r.date = ? AND r.theme_id = ?",
                 new Object[]{date, themeId},
                 (rs, rowNum) -> new Reservation(
