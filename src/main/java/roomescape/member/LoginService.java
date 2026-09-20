@@ -32,7 +32,7 @@ public class LoginService {
 
             return jwtTokenProvider.createToken(member);
         } catch (EmptyResultDataAccessException e) {
-            throw new IllegalArgumentException(
+            throw new UnauthorizedException(
                     "이메일 또는 비밀번호가 올바르지 않습니다."
             );
         }
@@ -40,7 +40,7 @@ public class LoginService {
 
     public LoginMember findLoginMember(String token) {
         if (token == null || token.isBlank()) {
-            throw new IllegalArgumentException("로그인이 필요합니다.");
+            throw new UnauthorizedException("로그인이 필요합니다.");
         }
 
         try {
@@ -55,7 +55,7 @@ public class LoginService {
             );
         } catch (JwtException | IllegalArgumentException
                  | EmptyResultDataAccessException e) {
-            throw new IllegalArgumentException("유효하지 않은 로그인 정보입니다.");
+            throw new UnauthorizedException("유효하지 않은 로그인 정보입니다.");
         }
     }
 }
