@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
+import org.springframework.web.method.HandlerMethod;
 
 @Component
 public class AdminInterceptor implements HandlerInterceptor {
@@ -21,19 +22,16 @@ public class AdminInterceptor implements HandlerInterceptor {
             HttpServletResponse response,
             Object handler
     ) {
-        String token = extractTokenFromCookie(request.getCookies());
-
-        LoginMember member;
-        try {
-            member = loginService.findLoginMember(token);
-        } catch (IllegalArgumentException e) {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            return false;
+        if (!(handler instanceof HandlerMethod handlerMethod)
+                || !handlerMethod.hasMethodAnnotation(AdminOnly.class)) {
+            return true;
         }
 
-        if (!"ADMIN".equals(member.getRole())) {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            return false;
+        String token = extractTokenFromCookie(request.getCookies());
+        LoginMember member = loginService.findLoginMember(token);
+
+        if (!member.isAdmin()) {
+            throw new ForbiddenException("관리자 권한이 필요합니다.");
         }
 
         return true;

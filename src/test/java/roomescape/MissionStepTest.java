@@ -7,6 +7,8 @@ import io.restassured.response.Response;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.DirtiesContext;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -166,5 +168,39 @@ public class MissionStepTest {
                 .statusCode(200)
                 .extract()
                 .cookie("token");
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "DELETE, /reservations/1",
+            "POST, /themes",
+            "DELETE, /themes/1",
+            "POST, /times",
+            "DELETE, /times/1"
+    })
+    void 관리자_API는_비로그인과_일반_사용자를_차단한다(
+            String method,
+            String path
+    ) {
+        Map<String, String> body = Map.of(
+                "name", "새 테마",
+                "description", "테마 설명",
+                "value", "21:00"
+        );
+
+        RestAssured.given()
+                .contentType(ContentType.JSON)
+                .body(body)
+                .when().request(method, path)
+                .then().statusCode(401);
+
+        String token = createToken("brown@email.com", "password");
+
+        RestAssured.given()
+                .contentType(ContentType.JSON)
+                .cookie("token", token)
+                .body(body)
+                .when().request(method, path)
+                .then().statusCode(403);
     }
 }
