@@ -9,6 +9,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.DirtiesContext;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -59,7 +61,7 @@ public class MissionStepTest {
         assertThat(response.jsonPath().getString("name"))
                 .isEqualTo("어드민");
 
-        params.put("name", "브라운");
+        params.put("memberId", "2");
 
         ExtractableResponse<Response> adminResponse =
                 RestAssured.given().log().all()
@@ -201,6 +203,65 @@ public class MissionStepTest {
                 .cookie("token", token)
                 .body(body)
                 .when().request(method, path)
+                .then().statusCode(403);
+    }
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @Test
+    void 동명이인도_회원_ID로_구분하여_예약한다() {
+        Long anotherBrownId = RestAssured.given()
+                .contentType(ContentType.JSON)
+                .body(Map.of(
+                        "name", "브라운",
+                        "email", "another-brown@email.com",
+                        "password", "password"
+                ))
+                .when().post("/members")
+                .then().statusCode(201)
+                .extract().jsonPath().getLong("id");
+
+        String adminToken = createToken("admin@email.com", "password");
+
+        for (Long memberId : new Long[]{2L, anotherBrownId}) {
+            Long reservationId = RestAssured.given()
+                    .contentType(ContentType.JSON)
+                    .cookie("token", adminToken)
+                    .body(Map.of(
+                            "memberId", memberId,
+                            "date", "2024-03-02",
+                            "time", 1,
+                            "theme", 1
+                    ))
+                    .when().post("/reservations")
+                    .then().statusCode(201)
+                    .extract().jsonPath().getLong("id");
+
+            Long savedMemberId = jdbcTemplate.queryForObject(
+                    "SELECT member_id FROM reservation WHERE id = ?",
+                    Long.class,
+                    reservationId
+            );
+
+            assertThat(savedMemberId).isEqualTo(memberId);
+        }
+    }
+
+    @Test
+    void 일반_회원은_다른_회원으로_예약할_수_없다() {
+        String token = createToken("brown@email.com", "password");
+
+        RestAssured.given()
+                .contentType(ContentType.JSON)
+                .cookie("token", token)
+                .body(Map.of(
+                        "memberId", 1,
+                        "date", "2024-03-02",
+                        "time", 1,
+                        "theme", 1
+                ))
+                .when().post("/reservations")
                 .then().statusCode(403);
     }
 }

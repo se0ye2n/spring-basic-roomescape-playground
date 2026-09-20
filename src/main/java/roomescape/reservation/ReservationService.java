@@ -6,6 +6,8 @@ import roomescape.member.Member;
 import roomescape.member.MemberDao;
 
 import java.util.List;
+import org.springframework.dao.EmptyResultDataAccessException;
+import roomescape.member.ForbiddenException;
 
 @Service
 public class ReservationService {
@@ -32,7 +34,7 @@ public class ReservationService {
 
         Reservation reservation = reservationDao.save(
                 reservationRequest,
-                member.getName()
+                member
         );
 
         return new ReservationResponse(
@@ -48,13 +50,24 @@ public class ReservationService {
             ReservationRequest reservationRequest,
             LoginMember loginMember
     ) {
-        String name = reservationRequest.getName();
+        Long memberId = reservationRequest.getMemberId();
 
-        if (name == null || name.isBlank()) {
-            return memberDao.findById(loginMember.getId());
+        if (memberId == null) {
+            memberId = loginMember.getId();
         }
 
-        return memberDao.findByName(name);
+        if (!loginMember.isAdmin()
+                && !loginMember.getId().equals(memberId)) {
+            throw new ForbiddenException(
+                    "다른 회원의 예약은 관리자만 생성할 수 있습니다."
+            );
+        }
+
+        try {
+            return memberDao.findById(memberId);
+        } catch (EmptyResultDataAccessException e) {
+            throw new IllegalArgumentException("존재하지 않는 회원입니다.");
+        }
     }
 
     public void deleteById(Long id) {
