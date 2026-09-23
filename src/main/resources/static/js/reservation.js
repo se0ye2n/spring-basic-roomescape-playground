@@ -80,21 +80,40 @@ function createActionButton(label, className, eventListener) {
 }
 
 function addInputRow() {
-  if (isEditing) return;  // 이미 편집 중인 경우 추가하지 않음
+  if (isEditing) return;
 
   const tableBody = document.getElementById('table-body');
   const row = tableBody.insertRow();
   isEditing = true;
 
-  const nameInput = createInput('text');
+  const memberIdInput = createInput('number');
+  memberIdInput.classList.add('member-id-input');
+  memberIdInput.placeholder = '예약할 회원 ID';
+  memberIdInput.min = '1';
+  memberIdInput.step = '1';
+
   const dateInput = createInput('date');
-  const timeDropdown = createSelect(timesOptions, "시간 선택", 'time-select', 'value');
-  const themeDropdown = createSelect(themesOptions, "테마 선택", 'theme-select', 'name');
+  const timeDropdown = createSelect(
+      timesOptions, '시간 선택', 'time-select', 'value'
+  );
+  const themeDropdown = createSelect(
+      themesOptions, '테마 선택', 'theme-select', 'name'
+  );
 
-  const cellFieldsToCreate = ['', nameInput, themeDropdown, dateInput, timeDropdown];
+  timeDropdown.options[0].value = '';
+  themeDropdown.options[0].value = '';
 
-  cellFieldsToCreate.forEach((field, index) => {
+  const fields = [
+    '',
+    memberIdInput,
+    themeDropdown,
+    dateInput,
+    timeDropdown
+  ];
+
+  fields.forEach((field, index) => {
     const cell = row.insertCell(index);
+
     if (typeof field === 'string') {
       cell.textContent = field;
     } else {
@@ -102,12 +121,16 @@ function addInputRow() {
     }
   });
 
-  const actionCell = row.insertCell(row.cells.length);
-  actionCell.appendChild(createActionButton('확인', 'btn-custom', saveRow));
-  actionCell.appendChild(createActionButton('취소', 'btn-secondary', () => {
-    row.remove();
-    isEditing = false;
-  }));
+  const actionCell = row.insertCell();
+  actionCell.appendChild(
+      createActionButton('확인', 'btn-custom', saveRow)
+  );
+  actionCell.appendChild(
+      createActionButton('취소', 'btn-secondary', () => {
+        row.remove();
+        isEditing = false;
+      })
+  );
 }
 
 function createInput(type) {
@@ -126,29 +149,41 @@ function createActionButton(label, className, eventListener) {
 }
 
 function saveRow(event) {
-  // 이벤트 전파를 막는다
   event.stopPropagation();
 
-  const row = event.target.parentNode.parentNode;
-  const nameInput = row.querySelector('input[type="text"]');
-  const themeSelect = row.querySelector('select');
+  const row = event.target.closest('tr');
+  const memberIdInput = row.querySelector('.member-id-input');
+  const themeSelect = row.querySelector('#theme-select');
+  const timeSelect = row.querySelector('#time-select');
   const dateInput = row.querySelector('input[type="date"]');
-  const timeSelect = row.querySelector('select');
+
+  const memberId = Number(memberIdInput.value);
+
+  if (!Number.isSafeInteger(memberId) || memberId <= 0
+      || !themeSelect.value
+      || !timeSelect.value
+      || !dateInput.value) {
+    alert('회원 ID, 테마, 날짜, 시간을 올바르게 입력해주세요.');
+    return;
+  }
 
   const reservation = {
-    name: nameInput.value,
-    theme: themeSelect.value,
+    memberId: memberId,
+    theme: Number(themeSelect.value),
     date: dateInput.value,
-    time: timeSelect.value
+    time: Number(timeSelect.value)
   };
 
-  requestCreate(reservation)
-      .then(() => {
-        location.reload();
-      })
-      .catch(error => console.error('Error:', error));
+  const button = event.target;
+  button.disabled = true;
 
-  isEditing = false;  // isEditing 값을 false로 설정
+  requestCreate(reservation)
+      .then(() => location.reload())
+      .catch(error => {
+        button.disabled = false;
+        alert('예약에 실패했습니다. 회원 ID와 입력 내용을 확인해주세요.');
+        console.error(error);
+      });
 }
 
 function deleteRow(event) {
