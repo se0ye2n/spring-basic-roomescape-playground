@@ -13,4 +13,7 @@ public interface ReservationRepository
 
     @EntityGraph(attributePaths = {"time"})
     List<Reservation> findByDateAndTheme_Id(String date, Long themeId);
+
+    @EntityGraph(attributePaths = {"time", "theme"})
+    List<Reservation> findByMember_IdOrderByIdAsc(Long memberId);
 }
