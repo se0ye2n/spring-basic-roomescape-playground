@@ -6,7 +6,13 @@ import roomescape.theme.Theme;
 import roomescape.time.Time;
 
 @Entity
-@Table(name = "reservation")
+@Table(
+        name = "reservation",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_reservation_slot",
+                columnNames = {"date", "theme_id", "time_id"}
+        )
+)
 public class Reservation {
 
     @Id

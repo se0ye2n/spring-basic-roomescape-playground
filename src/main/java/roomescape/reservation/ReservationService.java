@@ -11,6 +11,7 @@ import roomescape.theme.ThemeRepository;
 import roomescape.time.Time;
 import roomescape.time.TimeRepository;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -39,6 +40,16 @@ public class ReservationService {
             ReservationRequest request,
             LoginMember loginMember
     ) {
+        if (request.getDate() == null
+                || request.getTime() == null
+                || request.getTheme() == null) {
+            throw new IllegalArgumentException(
+                    "날짜, 시간, 테마를 입력해주세요."
+            );
+        }
+
+        String date = LocalDate.parse(request.getDate()).toString();
+
         Member member = findReservationMember(request, loginMember);
 
         Time time = timeRepository.findByIdAndDeletedFalse(request.getTime())
@@ -51,8 +62,14 @@ public class ReservationService {
                         "존재하지 않는 테마입니다."
                 ));
 
+        if (reservationRepository.existsByDateAndTheme_IdAndTime_Id(
+                date, theme.getId(), time.getId()
+        )) {
+            throw new IllegalArgumentException("이미 예약된 시간입니다.");
+        }
+
         Reservation reservation = reservationRepository.save(
-                new Reservation(member, request.getDate(), time, theme)
+                new Reservation(member, date, time, theme)
         );
 
         return toResponse(reservation);

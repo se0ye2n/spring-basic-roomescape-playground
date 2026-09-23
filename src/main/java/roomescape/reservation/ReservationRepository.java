@@ -4,6 +4,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ReservationRepository
         extends JpaRepository<Reservation, Long> {
@@ -16,4 +17,16 @@ public interface ReservationRepository
 
     @EntityGraph(attributePaths = {"time", "theme"})
     List<Reservation> findByMember_IdOrderByIdAsc(Long memberId);
+
+    boolean existsByDateAndTheme_IdAndTime_Id(
+            String date,
+            Long themeId,
+            Long timeId
+    );
+
+    Optional<Reservation> findByDateAndTheme_IdAndTime_Id(
+            String date,
+            Long themeId,
+            Long timeId
+    );
 }
