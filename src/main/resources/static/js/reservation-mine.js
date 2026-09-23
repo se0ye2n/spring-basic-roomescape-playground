@@ -3,7 +3,9 @@ const RESERVATION_API_ENDPOINT = '/reservations-mine';
 document.addEventListener('DOMContentLoaded', () => {
   requestRead(RESERVATION_API_ENDPOINT)
       .then(render)
-      .catch(error => console.error('Error fetching reservations:', error));
+      .catch(error => {
+        alert(error.message);
+      });
 });
 
 function render(data) {
@@ -13,23 +15,30 @@ function render(data) {
   data.forEach(item => {
     const row = tableBody.insertRow();
 
-    row.insertCell(0).textContent = item.theme;
-    row.insertCell(1).textContent = item.date;
-    row.insertCell(2).textContent = item.time;
-    row.insertCell(3).textContent = item.status;
+    row.insertCell().textContent = item.theme;
+    row.insertCell().textContent = item.date;
+    row.insertCell().textContent = item.time;
+    row.insertCell().textContent = item.status;
 
-    // 새 셀을 만들고 취소 버튼을 추가
-    if (item.status !== '예약') {
-      const cancelCell = row.insertCell(4);
+    const actionCell = row.insertCell();
+
+    if (item.waitingId != null) {
       const cancelButton = document.createElement('button');
-      cancelButton.textContent = '취소 '; // 버튼 텍스트 설정
-      cancelButton.className = 'btn btn-danger'; // 필요한 경우 CSS 클래스 설정
-      cancelButton.onclick = function () {
-        requestDeleteWaiting(item.id).then(() => window.location.reload());
-      };
-      cancelCell.appendChild(cancelButton); // 버튼을 셀에 추가
-    } else {
-      row.insertCell(4).textContent = ''; // 취소 버튼이 없는 빈 셀 추가
+      cancelButton.textContent = '취소';
+      cancelButton.className = 'btn btn-danger';
+
+      cancelButton.addEventListener('click', () => {
+        cancelButton.disabled = true;
+
+        requestDeleteWaiting(item.waitingId)
+            .then(() => window.location.reload())
+            .catch(error => {
+              cancelButton.disabled = false;
+              alert(error.message);
+            });
+      });
+
+      actionCell.appendChild(cancelButton);
     }
   });
 }
@@ -37,16 +46,28 @@ function render(data) {
 function requestRead(endpoint) {
   return fetch(endpoint)
       .then(response => {
-        if (response.status === 200) return response.json();
-        throw new Error('Read failed');
+        if (response.status === 401) {
+          throw new Error('로그인 후 이용해주세요.');
+        }
+
+        if (!response.ok) {
+          throw new Error('예약 목록을 불러오지 못했습니다.');
+        }
+
+        return response.json();
       });
 }
 
 function requestDeleteWaiting(id) {
-  const endpoint = '/waitings/' + id;
-  return fetch(endpoint, { method: 'DELETE' })
-      .then(response => {
-        if (response.status === 204) return;
-        throw new Error('Delete failed');
-      });
+  return fetch('/waitings/' + id, {
+    method: 'DELETE'
+  }).then(response => {
+    if (response.status === 403) {
+      throw new Error('본인의 예약 대기만 취소할 수 있습니다.');
+    }
+
+    if (response.status !== 204) {
+      throw new Error('예약 대기를 취소하지 못했습니다.');
+    }
+  });
 }
