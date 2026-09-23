@@ -2,20 +2,26 @@ package roomescape.reservation;
 
 public class MyReservationResponse {
 
-    private final Long reservationId;
-    private final String theme;
-    private final String date;
-    private final String time;
-    private final String status;
+    private Long reservationId;
+    private Long waitingId;
+    private String theme;
+    private String date;
+    private String time;
+    private String status;
+
+    public MyReservationResponse() {
+    }
 
     public MyReservationResponse(
             Long reservationId,
+            Long waitingId,
             String theme,
             String date,
             String time,
             String status
     ) {
         this.reservationId = reservationId;
+        this.waitingId = waitingId;
         this.theme = theme;
         this.date = date;
         this.time = time;
@@ -24,6 +30,10 @@ public class MyReservationResponse {
 
     public Long getReservationId() {
         return reservationId;
+    }
+
+    public Long getWaitingId() {
+        return waitingId;
     }
 
     public String getTheme() {
