@@ -88,7 +88,7 @@ public class MissionStepTest {
                 ))
                 .when().post("/reservations")
                 .then().log().all()
-                .statusCode(400);
+                .statusCode(401);
     }
 
     @Test
@@ -103,7 +103,7 @@ public class MissionStepTest {
                 ))
                 .when().post("/reservations")
                 .then().log().all()
-                .statusCode(400);
+                .statusCode(401);
     }
 
     @Test
@@ -123,7 +123,7 @@ public class MissionStepTest {
                     .cookie("token", brownToken)
                     .when().get(path)
                     .then().log().all()
-                    .statusCode(401);
+                    .statusCode(403);
 
             RestAssured.given().log().all()
                     .cookie("token", adminToken)

@@ -1,5 +1,6 @@
 package roomescape.reservation;
 
+import roomescape.member.AdminOnly;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -45,6 +46,7 @@ public class ReservationController {
                 .body(reservation);
     }
 
+    @AdminOnly
     @DeleteMapping("/reservations/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         reservationService.deleteById(id);
