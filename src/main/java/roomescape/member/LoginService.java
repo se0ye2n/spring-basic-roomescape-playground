@@ -1,41 +1,41 @@
 package roomescape.member;
 
 import io.jsonwebtoken.JwtException;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Transactional(readOnly = true)
 public class LoginService {
 
-    private final MemberDao memberDao;
+    private final MemberRepository memberRepository;
     private final JwtTokenProvider jwtTokenProvider;
 
     public LoginService(
-            MemberDao memberDao,
+            MemberRepository memberRepository,
             JwtTokenProvider jwtTokenProvider
     ) {
-        this.memberDao = memberDao;
+        this.memberRepository = memberRepository;
         this.jwtTokenProvider = jwtTokenProvider;
     }
 
     public String login(LoginRequest request) {
         if (request.getEmail() == null || request.getEmail().isBlank()
-                || request.getPassword() == null || request.getPassword().isBlank()) {
-            throw new IllegalArgumentException("이메일과 비밀번호를 입력해주세요.");
-        }
-
-        try {
-            Member member = memberDao.findByEmailAndPassword(
-                    request.getEmail(),
-                    request.getPassword()
-            );
-
-            return jwtTokenProvider.createToken(member);
-        } catch (EmptyResultDataAccessException e) {
-            throw new UnauthorizedException(
-                    "이메일 또는 비밀번호가 올바르지 않습니다."
+                || request.getPassword() == null
+                || request.getPassword().isBlank()) {
+            throw new IllegalArgumentException(
+                    "이메일과 비밀번호를 입력해주세요."
             );
         }
+
+        Member member = memberRepository.findByEmailAndPassword(
+                request.getEmail(),
+                request.getPassword()
+        ).orElseThrow(() -> new UnauthorizedException(
+                "이메일 또는 비밀번호가 올바르지 않습니다."
+        ));
+
+        return jwtTokenProvider.createToken(member);
     }
 
     public LoginMember findLoginMember(String token) {
@@ -45,7 +45,11 @@ public class LoginService {
 
         try {
             Long memberId = jwtTokenProvider.getMemberId(token);
-            Member member = memberDao.findById(memberId);
+
+            Member member = memberRepository.findById(memberId)
+                    .orElseThrow(() -> new UnauthorizedException(
+                            "유효하지 않은 로그인 정보입니다."
+                    ));
 
             return new LoginMember(
                     member.getId(),
@@ -53,9 +57,10 @@ public class LoginService {
                     member.getEmail(),
                     member.getRole()
             );
-        } catch (JwtException | IllegalArgumentException
-                 | EmptyResultDataAccessException e) {
-            throw new UnauthorizedException("유효하지 않은 로그인 정보입니다.");
+        } catch (JwtException | IllegalArgumentException e) {
+            throw new UnauthorizedException(
+                    "유효하지 않은 로그인 정보입니다."
+            );
         }
     }
 }
